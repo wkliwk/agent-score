@@ -117,6 +117,21 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+:root {
+  --tier-master: #10b981;
+  --tier-expert: #3b82f6;
+  --tier-advanced: #8b5cf6;
+  --tier-intermediate: #3b82f6;
+  --tier-beginner: #6b7280;
+
+  --dim-automation: #3b82f6;
+  --dim-memory: #10b981;
+  --dim-agent-coverage: #8b5cf6;
+  --dim-tool-integrations: #f59e0b;
+  --dim-skill-breadth: #f43f5e;
+  --dim-workflow-depth: #06b6d4;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
