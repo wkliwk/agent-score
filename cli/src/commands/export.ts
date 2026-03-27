@@ -1,11 +1,19 @@
+import fs from "fs";
+import path from "path";
 import readline from "readline";
 import chalk from "chalk";
 import ora from "ora";
 import { buildManifest, AgentScoreManifest } from "../scanner.js";
 import { getToken, isTokenExpired } from "../auth.js";
 import { runLogin } from "./login.js";
+import { previewScore } from "../score-preview.js";
 
 const API_URL = process.env["AGENTSCORE_API_URL"] ?? "https://agentscore.dev";
+
+export interface ExportOptions {
+  auto: boolean;
+  save: boolean;
+}
 
 function colorizeManifest(manifest: AgentScoreManifest): string {
   const json = JSON.stringify(manifest, null, 2);
@@ -36,7 +44,7 @@ function prompt(question: string): Promise<string> {
   });
 }
 
-export async function runExport(): Promise<void> {
+export async function runExport(options: ExportOptions): Promise<void> {
   // 1. Determine username from stored auth or prompt
   let auth = getToken();
   let username = auth?.username ?? "";
@@ -62,17 +70,39 @@ export async function runExport(): Promise<void> {
     return;
   }
 
-  // 3. Pretty-print manifest
-  process.stdout.write("\n" + colorizeManifest(manifest) + "\n\n");
+  // 3. Show estimated score preview
+  previewScore(manifest);
 
-  // 4. Confirm submission
-  const answer = await prompt(chalk.bold("Submit this manifest to AgentScore? (y/n): "));
-  if (answer.trim().toLowerCase() !== "y") {
-    process.stdout.write(chalk.yellow("Submission cancelled.\n"));
+  // 4. Handle --save: write manifest to file and exit
+  if (options.save) {
+    const outPath = path.resolve("agentscore-manifest.json");
+    fs.writeFileSync(outPath, JSON.stringify(manifest, null, 2) + "\n");
+    process.stdout.write(
+      chalk.green("Manifest saved to: ") + chalk.bold.white(outPath) + "\n"
+    );
+    process.stdout.write(
+      chalk.gray("Inspect the file, then run ") +
+        chalk.cyan("agentscore export") +
+        chalk.gray(" to submit.\n")
+    );
     return;
   }
 
-  // 5. Ensure auth — run login flow if needed
+  // 5. Pretty-print manifest (skip in --auto mode)
+  if (!options.auto) {
+    process.stdout.write(colorizeManifest(manifest) + "\n\n");
+  }
+
+  // 6. Confirm submission (skip in --auto mode)
+  if (!options.auto) {
+    const answer = await prompt(chalk.bold("Submit this manifest to AgentScore? (y/n): "));
+    if (answer.trim().toLowerCase() !== "y") {
+      process.stdout.write(chalk.yellow("Submission cancelled.\n"));
+      return;
+    }
+  }
+
+  // 7. Ensure auth — run login flow if needed
   auth = getToken();
   if (auth === null || isTokenExpired(auth)) {
     process.stdout.write(
@@ -86,7 +116,7 @@ export async function runExport(): Promise<void> {
     }
   }
 
-  // 6. POST manifest
+  // 8. POST manifest
   const submitSpinner = ora("Submitting manifest...").start();
 
   try {
