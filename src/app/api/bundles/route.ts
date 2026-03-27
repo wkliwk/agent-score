@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
-import { scanContent } from "@/lib/credential-scanner";
+import { redactContent } from "@/lib/credential-scanner";
 
 // In-memory store for MVP (replace with DB table later)
 const bundleStore = new Map<string, BundleData>();
@@ -56,25 +56,31 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: "Invalid bundle format" }, { status: 400 });
   }
 
-  // Server-side credential scan
+  // Server-side credential scan + redaction
+  const redactionReports = [];
+  const redactedFiles: BundleFile[] = [];
   for (const file of bundle.files) {
-    const results = scanContent(file.content, file.path);
-    if (results.length > 0) {
-      return Response.json(
-        {
-          error: "Bundle contains potential secrets",
-          secrets: results.map((r) => ({ file: r.file, line: r.line, pattern: r.pattern })),
-        },
-        { status: 422 }
-      );
+    const report = redactContent(file.content, file.path);
+    if (report.results.length > 0) {
+      redactionReports.push({
+        file: file.path,
+        secretsFound: report.results.length,
+        details: report.results.map((r) => ({
+          line: r.line,
+          pattern: r.pattern,
+          redactedAs: r.redactedAs,
+        })),
+      });
     }
+    // Always store the redacted version
+    redactedFiles.push({ ...file, content: report.redacted });
   }
 
   const data: BundleData = {
     version: bundle.version,
     createdAt: new Date().toISOString(),
     username: bundle.username,
-    files: bundle.files,
+    files: redactedFiles,
     slices: {
       agents: bundle.slices?.agents ?? [],
       skills: bundle.slices?.skills ?? [],
@@ -87,7 +93,11 @@ export async function POST(request: NextRequest) {
 
   bundleStore.set(bundle.username.toLowerCase(), data);
 
-  return Response.json({ success: true, username: bundle.username });
+  return Response.json({
+    success: true,
+    username: bundle.username,
+    redactions: redactionReports.length > 0 ? redactionReports : undefined,
+  });
 }
 
 // GET /api/bundles — list all bundles
