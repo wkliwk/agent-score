@@ -10,6 +10,7 @@ import {
 import Navbar from "@/components/Navbar";
 import RadarChart from "@/components/RadarChart";
 import ShareButton from "@/components/ShareButton";
+import FullReport from "@/components/FullReport";
 import { getMockProfile } from "@/lib/mock-profiles";
 import type { MockDimensionScore } from "@/lib/mock-profiles";
 
@@ -273,6 +274,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Full Report (collapsible) */}
+          <div className="mx-auto max-w-3xl mb-14">
+            <FullReport profile={profile} />
           </div>
 
           {/* Dimension breakdown */}

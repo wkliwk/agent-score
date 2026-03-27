@@ -1,10 +1,18 @@
 import type { DimensionKey, TierLabel, TierDescription } from "@/lib/scoring/types";
 
+export interface MockSignal {
+  signal: string;
+  met: boolean;
+  earned?: number;
+  max?: number;
+}
+
 export interface MockDimensionScore {
   dimension: DimensionKey;
   score: number;
+  maxScore?: number;
   label: string;
-  signals: { signal: string; met: boolean }[];
+  signals: MockSignal[];
 }
 
 export interface MockProfile {
