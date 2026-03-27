@@ -130,9 +130,9 @@ export default function HomePage() {
               variant="outline"
               size="lg"
               className="border-white/20 text-white hover:bg-white/10 px-6 h-11"
-              render={<Link href="https://github.com/wkliwk/agent-score" target="_blank" rel="noopener noreferrer" />}
+              render={<Link href="/upload" />}
             >
-              Get your score
+              Upload manifest
             </Button>
           </div>
 
@@ -256,23 +256,43 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* CTA — 30-second setup guide */}
       <section className="px-4 py-16 md:py-24 text-center">
         <div className="mx-auto max-w-xl">
           <h2 className="text-2xl font-semibold tracking-tight text-white md:text-3xl">
             Score your setup in 30 seconds
           </h2>
-          <p className="mt-3 text-white/55 text-sm">
-            Run the CLI, get your score, and share your profile with the community.
+          <p className="mt-3 text-white/55 text-sm mb-8">
+            Three commands. That&apos;s it.
           </p>
-          <div className="mt-6 mx-auto max-w-sm">
-            <div className="flex items-center justify-between rounded-xl bg-[#111] border border-white/10 px-4 py-3">
-              <code className="font-mono text-sm text-emerald-400">
-                npx agentscore export
-              </code>
+
+          <div className="mx-auto max-w-md space-y-3 text-left">
+            <div className="flex items-center gap-3 rounded-xl bg-[#111] border border-white/10 px-4 py-3">
+              <span className="text-xs font-bold text-white/30 w-4">1</span>
+              <code className="flex-1 font-mono text-sm text-emerald-400">npx agentscore export</code>
               <CopyButton text="npx agentscore export" />
             </div>
+            <p className="text-xs text-white/40 pl-7">Scans ~/.claude/ and shows your score preview</p>
+
+            <div className="flex items-center gap-3 rounded-xl bg-[#111] border border-white/10 px-4 py-3">
+              <span className="text-xs font-bold text-white/30 w-4">2</span>
+              <code className="flex-1 font-mono text-sm text-white/60">Review manifest → press <span className="text-emerald-400">y</span> to submit</code>
+            </div>
+            <p className="text-xs text-white/40 pl-7">Your profile goes live at agentscore.dev/u/you</p>
+
+            <div className="flex items-center gap-3 rounded-xl bg-[#111] border border-white/10 px-4 py-3">
+              <span className="text-xs font-bold text-white/30 w-4">3</span>
+              <code className="flex-1 font-mono text-sm text-white/60">Share your profile link</code>
+            </div>
           </div>
+
+          <p className="mt-6 text-xs text-white/30">
+            Or{" "}
+            <Link href="/upload" className="text-indigo-400 hover:underline">
+              upload a manifest manually
+            </Link>
+            {" "}if you prefer.
+          </p>
         </div>
       </section>
 
@@ -291,6 +311,7 @@ export default function HomePage() {
           </span>
           <div className="flex gap-4">
             <Link href="/explore" className="hover:text-white/60 transition-colors">Explore</Link>
+            <Link href="/upload" className="hover:text-white/60 transition-colors">Upload</Link>
             <a
               href="https://github.com/wkliwk/agent-score"
               target="_blank"
