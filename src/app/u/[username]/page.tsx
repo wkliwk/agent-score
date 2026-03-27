@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import type { Metadata } from "next";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -12,11 +13,42 @@ import RadarChart from "@/components/RadarChart";
 import ShareButton from "@/components/ShareButton";
 import FullReport from "@/components/FullReport";
 import LevelUp from "@/components/LevelUp";
+import DownloadInfographic from "@/components/DownloadInfographic";
 import { getMockProfile } from "@/lib/mock-profiles";
 import type { MockDimensionScore } from "@/lib/mock-profiles";
 
 interface ProfilePageProps {
   params: Promise<{ username: string }>;
+}
+
+const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://agentscore.dev";
+
+export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
+  const { username } = await params;
+  const profile = getMockProfile(username);
+  if (!profile) return { title: "Profile not found" };
+
+  const ogUrl = `${BASE_URL}/api/og/${username}`;
+  const title = `@${username} — AgentScore ${profile.composite} (${profile.tier})`;
+  const description = profile.personality;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "profile",
+      url: `${BASE_URL}/u/${username}`,
+      images: [{ url: ogUrl, width: 1200, height: 630, alt: `AgentScore for @${username}` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogUrl],
+    },
+  };
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -161,6 +193,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               </div>
               <div className="mt-4 flex items-center justify-center gap-3">
                 <ShareButton username={profile.username} />
+                <DownloadInfographic username={profile.username} />
               </div>
             </div>
           </div>
