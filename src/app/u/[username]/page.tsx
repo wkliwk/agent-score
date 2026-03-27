@@ -198,6 +198,27 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </div>
           </div>
 
+          {/* Bundle stats */}
+          {profile.bundle && (
+            <div className="flex items-center justify-center gap-6 mb-10">
+              <div className="flex items-center gap-2 text-sm text-white/50">
+                <GitFork size={14} className="text-indigo-400" />
+                <span className="font-mono text-white/70">{profile.bundle.importCount}</span>
+                <span>imports</span>
+              </div>
+              <div className="h-3 w-px bg-white/10" />
+              <div className="flex items-center gap-2 text-sm text-white/50">
+                <span className="font-mono text-white/70">{profile.bundle.inspiredByCount}</span>
+                <span>users inspired</span>
+              </div>
+              <div className="h-3 w-px bg-white/10" />
+              <div className="flex items-center gap-2 text-sm text-white/50">
+                <span className="font-mono text-white/70">{profile.bundle.fileCount}</span>
+                <span>files shared</span>
+              </div>
+            </div>
+          )}
+
           {/* Report section */}
           <div className="mx-auto max-w-3xl space-y-8 mb-14">
             {/* Personality */}

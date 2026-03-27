@@ -30,6 +30,11 @@ export interface MockProfile {
   strengths: { dimension: string; explanation: string }[];
   growthAreas: { dimension: string; suggestion: string }[];
   nextSteps: { action: string; dimension: string; pointsGain: number }[];
+  bundle?: {
+    fileCount: number;
+    importCount: number;
+    inspiredByCount: number;
+  };
 }
 
 export const MOCK_PROFILES: MockProfile[] = [
@@ -146,6 +151,11 @@ export const MOCK_PROFILES: MockProfile[] = [
       "health-check",
     ],
     hooks: ["PreToolUse", "PostToolUse", "Stop", "SubagentStop"],
+    bundle: {
+      fileCount: 31,
+      importCount: 47,
+      inspiredByCount: 12,
+    },
     strengths: [
       {
         dimension: "Memory",
