@@ -16,6 +16,7 @@ import FullReport from "@/components/FullReport";
 import LevelUp from "@/components/LevelUp";
 import DownloadInfographic from "@/components/DownloadInfographic";
 import { getMockProfile } from "@/lib/mock-profiles";
+import { dbRowToProfile } from "@/lib/db-to-profile";
 import type { MockDimensionScore } from "@/lib/mock-profiles";
 
 interface ProfilePageProps {
@@ -24,9 +25,23 @@ interface ProfilePageProps {
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://agentscore.dev";
 
+async function fetchDbProfile(username: string) {
+  try {
+    const { getDb } = await import("@/db");
+    const { profiles } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const db = getDb();
+    const rows = await db.select().from(profiles).where(eq(profiles.githubLogin, username)).limit(1);
+    if (rows.length === 0) return null;
+    return dbRowToProfile(rows[0]);
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
   const { username } = await params;
-  const profile = getMockProfile(username);
+  const profile = (await fetchDbProfile(username)) ?? getMockProfile(username);
   if (!profile) return { title: "Profile not found" };
 
   const ogUrl = `${BASE_URL}/api/og/${username}`;
@@ -115,11 +130,10 @@ function DimensionCard({ dim }: { dim: MockDimensionScore }) {
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { username } = await params;
 
-  // Try real API first; fall back to mock
-  let profile = getMockProfile(username);
+  // Try real DB first; fall back to mock
+  const profile = (await fetchDbProfile(username)) ?? getMockProfile(username);
 
   if (!profile) {
-    // In production, would fetch from /api/profiles/[username]
     notFound();
   }
 
