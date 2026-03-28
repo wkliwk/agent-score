@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { Terminal } from "lucide-react";
+import { desc, eq, gte, and } from "drizzle-orm";
 import Navbar from "@/components/Navbar";
 import ProfileCard from "@/components/ProfileCard";
 import ExploreFilters from "@/components/ExploreFilters";
 import { MOCK_PROFILES } from "@/lib/mock-profiles";
+import { dbRowToProfile } from "@/lib/db-to-profile";
 import type { MockProfile } from "@/lib/mock-profiles";
+import type { DimensionKey } from "@/lib/scoring/types";
+
 interface ExplorePageProps {
   searchParams: Promise<{
     sort?: string;
@@ -15,27 +19,53 @@ interface ExplorePageProps {
 
 const PAGE_SIZE = 6;
 
-function filterAndSort(
+function filterByDimension(
   profiles: MockProfile[],
-  sort: string,
   dimension: string | undefined
 ): MockProfile[] {
-  let result = [...profiles];
+  if (!dimension || dimension === "all") return profiles;
+  return profiles.filter((p) => {
+    const top = [...p.dimensions].sort((a, b) => b.score - a.score)[0];
+    return top?.dimension === dimension;
+  });
+}
 
-  if (dimension && dimension !== "all") {
-    result = result.filter((p) => {
-      const top = [...p.dimensions].sort((a, b) => b.score - a.score)[0];
-      return top?.dimension === dimension;
-    });
+async function fetchDbProfiles(
+  sort: string,
+  page: number
+): Promise<{ profiles: MockProfile[]; hasMore: boolean } | null> {
+  try {
+    const { getDb } = await import("@/db");
+    const { profiles: profilesTable } = await import("@/db/schema");
+    const db = getDb();
+
+    const limit = PAGE_SIZE;
+    const offset = (page - 1) * limit;
+
+    const orderBy =
+      sort === "score"
+        ? desc(profilesTable.totalScore)
+        : desc(profilesTable.createdAt);
+
+    const rows = await db
+      .select()
+      .from(profilesTable)
+      .where(and(eq(profilesTable.visibility, "public"), gte(profilesTable.totalScore, 0)))
+      .orderBy(orderBy)
+      .limit(limit + 1)
+      .offset(offset);
+
+    const hasMore = rows.length > limit;
+    const pageRows = rows.slice(0, limit);
+
+    const converted = pageRows
+      .map((row) => dbRowToProfile(row))
+      .filter((p): p is MockProfile => p !== null);
+
+    return { profiles: converted, hasMore };
+  } catch {
+    return null;
   }
-
-  if (sort === "score") {
-    result.sort((a, b) => b.composite - a.composite);
-  } else {
-    // "newest" — keep mock insertion order as-is (already ordered)
-  }
-
-  return result;
 }
 
 export default async function ExplorePage({ searchParams }: ExplorePageProps) {
@@ -44,21 +74,28 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const dimension = params.dimension ?? "all";
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
 
-  // Attempt real API fetch; fall back to mock data if DB not available
   let profiles: MockProfile[] = [];
   let usedMock = false;
+  let hasMore = false;
 
-  try {
-    // In a real setup, we'd fetch from /api/profiles here.
-    // For dev without a DB, we always use mock data.
-    throw new Error("dev");
-  } catch {
+  // Try real DB first
+  const dbResult = await fetchDbProfiles(sort, page);
+
+  if (dbResult && dbResult.profiles.length > 0) {
+    profiles = filterByDimension(dbResult.profiles, dimension);
+    hasMore = dbResult.hasMore;
+  } else {
+    // Fallback to mock data when DB is empty or unavailable
     usedMock = true;
-    profiles = filterAndSort(MOCK_PROFILES, sort, dimension);
+    const sorted =
+      sort === "score"
+        ? [...MOCK_PROFILES].sort((a, b) => b.composite - a.composite)
+        : [...MOCK_PROFILES];
+    const filtered = filterByDimension(sorted, dimension);
+    const start = (page - 1) * PAGE_SIZE;
+    profiles = filtered.slice(start, start + PAGE_SIZE);
+    hasMore = start + PAGE_SIZE < filtered.length;
   }
-
-  const totalPages = Math.ceil(profiles.length / PAGE_SIZE);
-  const paginated = profiles.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -75,7 +112,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
               Browse Claude Code ecosystems from the community.
               {usedMock && (
                 <span className="ml-2 text-amber-400/70 text-xs">
-                  (showing mock data — DB not connected)
+                  (showing demo data)
                 </span>
               )}
             </p>
@@ -85,7 +122,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
           <ExploreFilters sort={sort} dimension={dimension} />
 
           {/* Grid */}
-          {paginated.length === 0 ? (
+          {profiles.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/5 mb-4">
                 <Terminal size={24} className="text-white/40" />
@@ -94,8 +131,11 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
                 Be the first to share your setup
               </h2>
               <p className="mt-2 text-sm text-white/50 max-w-xs">
-                Run <code className="font-mono text-emerald-400">npx agentscore export</code> to
-                generate your profile and join the community.
+                Run{" "}
+                <code className="font-mono text-emerald-400">
+                  npx agentscore export
+                </code>{" "}
+                to generate your profile and join the community.
               </p>
               <Link
                 href="https://github.com/wkliwk/agent-score"
@@ -108,32 +148,30 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {paginated.map((profile) => (
+              {profiles.map((profile) => (
                 <ProfileCard key={profile.username} profile={profile} />
               ))}
             </div>
           )}
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {(page > 1 || hasMore) && (
             <div className="mt-10 flex items-center justify-center gap-3">
               {page > 1 && (
                 <Link
                   href={`/explore?sort=${sort}&dimension=${dimension}&page=${page - 1}`}
                   className="rounded-lg border border-white/15 bg-[#12121a] px-4 py-2 text-sm text-white/70 hover:text-white hover:border-white/30 transition-colors"
                 >
-                  ← Prev
+                  &larr; Prev
                 </Link>
               )}
-              <span className="text-sm text-white/40">
-                {page} / {totalPages}
-              </span>
-              {page < totalPages && (
+              <span className="text-sm text-white/40">Page {page}</span>
+              {hasMore && (
                 <Link
                   href={`/explore?sort=${sort}&dimension=${dimension}&page=${page + 1}`}
                   className="rounded-lg border border-white/15 bg-[#12121a] px-4 py-2 text-sm text-white/70 hover:text-white hover:border-white/30 transition-colors"
                 >
-                  Next →
+                  Next &rarr;
                 </Link>
               )}
             </div>
@@ -158,4 +196,3 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     </div>
   );
 }
-
