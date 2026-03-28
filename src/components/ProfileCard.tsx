@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { Download } from "lucide-react";
 import RadarChart from "@/components/RadarChart";
 import type { MockProfile } from "@/lib/mock-profiles";
 
@@ -58,16 +59,25 @@ export default function ProfileCard({ profile }: ProfileCardProps) {
             @{profile.username}
           </span>
         </div>
-        <div className="flex flex-col items-end shrink-0">
+        <div className="flex flex-col items-end shrink-0 gap-1">
           <span className="text-2xl font-bold leading-none" style={{ color: tierColor }}>
             {profile.composite}
           </span>
           <span
-            className="mt-1 rounded px-1.5 py-0.5 text-xs font-medium"
+            className="rounded px-1.5 py-0.5 text-xs font-medium"
             style={{ backgroundColor: `${tierColor}18`, color: tierColor }}
           >
             {profile.tierDescription}
           </span>
+          {profile.bundle !== undefined && (
+            <span
+              className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-medium text-emerald-400 bg-emerald-400/10"
+              aria-label={`${profile.bundle.importCount} imports`}
+            >
+              <Download size={10} aria-hidden="true" />
+              {profile.bundle.importCount}
+            </span>
+          )}
         </div>
       </div>
 
