@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   ArrowUpRight,
   GitFork,
+  ClipboardCheck,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import RadarChart from "@/components/RadarChart";
@@ -351,6 +352,27 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 <DimensionCard key={dim.dimension} dim={dim} />
               ))}
             </div>
+          </div>
+
+          {/* Benchmark CTA */}
+          <div className="rounded-xl bg-[#12121a] border border-cyan-500/20 p-6 mb-10">
+            <div className="flex items-center gap-3 mb-3">
+              <ClipboardCheck size={20} className="text-cyan-400" />
+              <h2 className="text-lg font-semibold text-white">
+                Benchmark Your Setup
+              </h2>
+            </div>
+            <p className="text-sm text-white/50 mb-4">
+              Config scoring tells you what you have — benchmarking tells you if
+              it works. Run 6 standardized tasks and get graded.
+            </p>
+            <Link
+              href="/benchmark"
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-cyan-600 text-white hover:bg-cyan-500 transition-colors"
+            >
+              <ClipboardCheck size={14} />
+              Take the Benchmark
+            </Link>
           </div>
 
           {/* Manifest Overview */}
