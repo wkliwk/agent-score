@@ -1,29 +1,7 @@
 import type { NextRequest } from "next/server";
-
-// In-memory store (shared with parent route via import)
-// For MVP, this is a simple reference — in production, both routes would use the DB
-// This endpoint returns mock data or stored data
-
-interface BundleFile {
-  path: string;
-  category: "agent" | "command" | "memory-index" | "hooks-structure";
-  content: string;
-}
-
-interface BundleData {
-  version: string;
-  createdAt: string;
-  username: string;
-  files: BundleFile[];
-  slices: {
-    agents: string[];
-    skills: string[];
-    memoryStructure: boolean;
-    hooksStructure: boolean;
-  };
-  importCount: number;
-  inspiredBy: string[];
-}
+import { eq, sql } from "drizzle-orm";
+import { db } from "@/db";
+import { bundles } from "@/db/schema";
 
 // GET /api/bundles/[username] — fetch a user's bundle
 export async function GET(
@@ -32,12 +10,34 @@ export async function GET(
 ) {
   const { username } = await params;
 
-  // In production, this would query the DB
-  // For MVP, return 404 (bundles are stored in-memory on POST and won't persist across restarts)
-  return Response.json(
-    { error: `Bundle not found for @${username}` },
-    { status: 404 }
-  );
+  const rows = await db
+    .select()
+    .from(bundles)
+    .where(eq(bundles.username, username.toLowerCase()))
+    .limit(1);
+
+  if (rows.length === 0) {
+    return Response.json(
+      { error: `Bundle not found for @${username}` },
+      { status: 404 }
+    );
+  }
+
+  const row = rows[0];
+  const files = row.files as {
+    path: string;
+    category: string;
+    content: string;
+  }[];
+
+  return Response.json({
+    username: row.username,
+    description: row.description,
+    files,
+    slices: row.slices,
+    importCount: row.importCount,
+    createdAt: row.createdAt.toISOString(),
+  });
 }
 
 // POST /api/bundles/[username]/import — record an import (increment counter)
@@ -47,9 +47,23 @@ export async function POST(
 ) {
   const { username } = await params;
 
-  // In production, increment import counter and record "inspired by"
+  const result = await db
+    .update(bundles)
+    .set({
+      importCount: sql`${bundles.importCount} + 1`,
+    })
+    .where(eq(bundles.username, username.toLowerCase()))
+    .returning({ importCount: bundles.importCount });
+
+  if (result.length === 0) {
+    return Response.json(
+      { error: `Bundle not found for @${username}` },
+      { status: 404 }
+    );
+  }
+
   return Response.json({
     success: true,
-    message: `Import from @${username} recorded`,
+    importCount: result[0].importCount,
   });
 }

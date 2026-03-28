@@ -3,6 +3,7 @@ import {
   uuid,
   text,
   real,
+  integer,
   jsonb,
   timestamp,
   pgEnum,
@@ -83,5 +84,31 @@ export const deviceFlows = pgTable(
       table.deviceCode
     ),
     userCodeIdx: index("device_flows_user_code_idx").on(table.userCode),
+  })
+);
+
+export const bundles = pgTable(
+  "bundles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    username: text("username").notNull(),
+    description: text("description"),
+    files: jsonb("files").notNull(),
+    slices: jsonb("slices").notNull(),
+    importCount: integer("import_count").notNull().default(0),
+    inspiredBy: jsonb("inspired_by").notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    usernameIdx: uniqueIndex("bundles_username_idx").on(table.username),
+    profileIdIdx: index("bundles_profile_id_idx").on(table.profileId),
   })
 );
