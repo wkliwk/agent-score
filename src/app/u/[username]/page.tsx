@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   GitFork,
   ClipboardCheck,
+  FileCode2,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import RadarChart from "@/components/RadarChart";
@@ -127,11 +128,25 @@ function DimensionCard({ dim }: { dim: MockDimensionScore }) {
   );
 }
 
+async function hasBundle(username: string): Promise<boolean> {
+  try {
+    const { getDb } = await import("@/db");
+    const { bundles } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const db = getDb();
+    const rows = await db.select({ id: bundles.id }).from(bundles).where(eq(bundles.username, username.toLowerCase())).limit(1);
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const { username } = await params;
 
   // Try real DB first; fall back to mock
   const profile = (await fetchDbProfile(username)) ?? getMockProfile(username);
+  const bundleExists = await hasBundle(username);
 
   if (!profile) {
     notFound();
@@ -367,6 +382,29 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               ))}
             </div>
           </div>
+
+          {/* Published Setup link */}
+          {bundleExists && (
+            <div className="rounded-xl bg-[#12121a] border border-indigo-500/20 p-6 mb-10">
+              <div className="flex items-center gap-3 mb-3">
+                <FileCode2 size={20} className="text-indigo-400" />
+                <h2 className="text-lg font-semibold text-white">
+                  Full Setup Published
+                </h2>
+              </div>
+              <p className="text-sm text-white/50 mb-4">
+                @{username} has shared their complete Claude Code setup — agents,
+                commands, and configuration files.
+              </p>
+              <Link
+                href={`/u/${username}/setup`}
+                className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
+              >
+                <FileCode2 size={14} />
+                View Full Setup
+              </Link>
+            </div>
+          )}
 
           {/* Benchmark CTA */}
           <div className="rounded-xl bg-[#12121a] border border-cyan-500/20 p-6 mb-10">
