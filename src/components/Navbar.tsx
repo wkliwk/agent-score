@@ -18,6 +18,12 @@ export default function Navbar() {
             Explore
           </Link>
           <Link
+            href="/benchmark"
+            className="text-sm text-white/70 hover:text-white transition-colors hidden sm:inline"
+          >
+            Benchmark
+          </Link>
+          <Link
             href="https://github.com/wkliwk/agent-score"
             target="_blank"
             rel="noopener noreferrer"
