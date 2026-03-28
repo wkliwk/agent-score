@@ -12,6 +12,27 @@
     "prepublishOnly": "npm run build"
   },
   "files": ["dist"],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "agentscore",
+    "ai",
+    "agent",
+    "mcp",
+    "scoring",
+    "cli"
+  ],
+  "author": "wkliwk",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wkliwk/agent-score.git",
+    "directory": "cli"
+  },
+  "homepage": "https://agentscore.dev",
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
     "chalk": "^5.3.0",
     "ora": "^8.0.1",
