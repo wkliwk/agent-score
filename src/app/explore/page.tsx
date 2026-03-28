@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Terminal } from "lucide-react";
-import { desc, eq, gte, and } from "drizzle-orm";
+import { desc, eq, gte, and, isNotNull } from "drizzle-orm";
 import Navbar from "@/components/Navbar";
 import ProfileCard from "@/components/ProfileCard";
 import ExploreFilters from "@/components/ExploreFilters";
@@ -26,7 +26,7 @@ function filterByDimension(
   if (!dimension || dimension === "all") return profiles;
   return profiles.filter((p) => {
     const top = [...p.dimensions].sort((a, b) => b.score - a.score)[0];
-    return top?.dimension === dimension;
+    return top?.dimension === (dimension as DimensionKey);
   });
 }
 
@@ -36,11 +36,71 @@ async function fetchDbProfiles(
 ): Promise<{ profiles: MockProfile[]; hasMore: boolean } | null> {
   try {
     const { getDb } = await import("@/db");
-    const { profiles: profilesTable } = await import("@/db/schema");
+    const { profiles: profilesTable, bundles: bundlesTable } = await import("@/db/schema");
     const db = getDb();
 
     const limit = PAGE_SIZE;
     const offset = (page - 1) * limit;
+
+    if (sort === "imports") {
+      // Join profiles with bundles, order by importCount descending
+      const rows = await db
+        .select({
+          id: profilesTable.id,
+          githubId: profilesTable.githubId,
+          githubLogin: profilesTable.githubLogin,
+          displayName: profilesTable.displayName,
+          avatarUrl: profilesTable.avatarUrl,
+          bio: profilesTable.bio,
+          visibility: profilesTable.visibility,
+          totalScore: profilesTable.totalScore,
+          tier: profilesTable.tier,
+          dimensionScores: profilesTable.dimensionScores,
+          manifestSnapshot: profilesTable.manifestSnapshot,
+          scoredAt: profilesTable.scoredAt,
+          createdAt: profilesTable.createdAt,
+          updatedAt: profilesTable.updatedAt,
+          bundleImportCount: bundlesTable.importCount,
+          bundleFiles: bundlesTable.files,
+          bundleInspiredBy: bundlesTable.inspiredBy,
+        })
+        .from(profilesTable)
+        .innerJoin(bundlesTable, eq(bundlesTable.profileId, profilesTable.id))
+        .where(
+          and(
+            eq(profilesTable.visibility, "public"),
+            gte(profilesTable.totalScore, 0),
+            isNotNull(bundlesTable.importCount)
+          )
+        )
+        .orderBy(desc(bundlesTable.importCount))
+        .limit(limit + 1)
+        .offset(offset);
+
+      const hasMore = rows.length > limit;
+      const pageRows = rows.slice(0, limit);
+
+      const converted = pageRows
+        .map((row): MockProfile | null => {
+          const profile = dbRowToProfile(row);
+          if (!profile) return null;
+
+          const files = row.bundleFiles as unknown[];
+          const inspiredBy = row.bundleInspiredBy as unknown[];
+          const result: MockProfile = {
+            ...profile,
+            bundle: {
+              fileCount: Array.isArray(files) ? files.length : 0,
+              importCount: row.bundleImportCount ?? 0,
+              inspiredByCount: Array.isArray(inspiredBy) ? inspiredBy.length : 0,
+            },
+          };
+          return result;
+        })
+        .filter((p): p is MockProfile => p !== null);
+
+      return { profiles: converted, hasMore };
+    }
 
     const orderBy =
       sort === "score"
@@ -70,7 +130,12 @@ async function fetchDbProfiles(
 
 export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const params = await searchParams;
-  const sort = params.sort === "score" ? "score" : "newest";
+  const sort =
+    params.sort === "score"
+      ? "score"
+      : params.sort === "imports"
+        ? "imports"
+        : "newest";
   const dimension = params.dimension ?? "all";
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
 
@@ -90,7 +155,11 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     const sorted =
       sort === "score"
         ? [...MOCK_PROFILES].sort((a, b) => b.composite - a.composite)
-        : [...MOCK_PROFILES];
+        : sort === "imports"
+          ? [...MOCK_PROFILES].sort(
+              (a, b) => (b.bundle?.importCount ?? 0) - (a.bundle?.importCount ?? 0)
+            )
+          : [...MOCK_PROFILES];
     const filtered = filterByDimension(sorted, dimension);
     const start = (page - 1) * PAGE_SIZE;
     profiles = filtered.slice(start, start + PAGE_SIZE);

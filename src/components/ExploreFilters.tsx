@@ -18,6 +18,14 @@ const DIMENSIONS = [
   { value: "workflowDepth", label: "Workflow Depth" },
 ];
 
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest" },
+  { value: "score", label: "Highest Score" },
+  { value: "imports", label: "Most Imported" },
+] as const;
+
+type SortValue = (typeof SORT_OPTIONS)[number]["value"];
+
 export default function ExploreFilters({ sort, dimension }: ExploreFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -38,17 +46,17 @@ export default function ExploreFilters({ sort, dimension }: ExploreFiltersProps)
     <div className="mb-6 flex flex-wrap items-center gap-3">
       {/* Sort toggle */}
       <div className="flex rounded-lg border border-white/10 overflow-hidden">
-        {(["newest", "score"] as const).map((s) => (
+        {SORT_OPTIONS.map((s: { value: SortValue; label: string }) => (
           <button
-            key={s}
-            onClick={() => updateParams("sort", s)}
+            key={s.value}
+            onClick={() => updateParams("sort", s.value)}
             className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-              sort === s
+              sort === s.value
                 ? "bg-indigo-500 text-white"
                 : "bg-[#12121a] text-white/50 hover:text-white"
             }`}
           >
-            {s === "newest" ? "Newest" : "Highest Score"}
+            {s.label}
           </button>
         ))}
       </div>
