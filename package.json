@@ -6,12 +6,13 @@
     "cli"
   ],
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3500",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "build:check": "next build"
   },
   "dependencies": {
     "@auth/core": "^0.34.3",
