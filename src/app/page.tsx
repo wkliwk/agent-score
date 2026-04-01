@@ -122,17 +122,17 @@ export default function HomePage() {
             <Button
               size="lg"
               className="bg-indigo-500 hover:bg-indigo-600 text-white border-0 px-6 h-11"
-              render={<Link href="/explore" />}
+              render={<Link href="/upload" />}
             >
-              Explore profiles
+              Get Your Score
             </Button>
             <Button
               variant="outline"
               size="lg"
               className="border-white/20 text-white hover:bg-white/10 px-6 h-11"
-              render={<Link href="/upload" />}
+              render={<Link href="/explore" />}
             >
-              Upload manifest
+              Explore Profiles
             </Button>
           </div>
 
