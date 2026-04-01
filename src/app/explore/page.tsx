@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Terminal } from "lucide-react";
-import { desc, eq, gte, and, isNotNull } from "drizzle-orm";
+import { desc, eq, gte, and, isNotNull, sql } from "drizzle-orm";
 import Navbar from "@/components/Navbar";
 import ProfileCard from "@/components/ProfileCard";
 import ExploreFilters from "@/components/ExploreFilters";
@@ -8,6 +8,8 @@ import { MOCK_PROFILES } from "@/lib/mock-profiles";
 import { dbRowToProfile } from "@/lib/db-to-profile";
 import type { MockProfile } from "@/lib/mock-profiles";
 import type { DimensionKey } from "@/lib/scoring/types";
+
+export const revalidate = 60;
 
 interface ExplorePageProps {
   searchParams: Promise<{
@@ -128,6 +130,22 @@ async function fetchDbProfiles(
   }
 }
 
+
+async function fetchProfileCount(): Promise<number | null> {
+  try {
+    const { getDb } = await import("@/db");
+    const { profiles: profilesTable } = await import("@/db/schema");
+    const db = getDb();
+    const result = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(profilesTable)
+      .where(and(eq(profilesTable.visibility, "public"), isNotNull(profilesTable.totalScore)));
+    return result[0]?.count ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const params = await searchParams;
   const sort =
@@ -143,8 +161,10 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   let usedMock = false;
   let hasMore = false;
 
-  // Try real DB first
-  const dbResult = await fetchDbProfiles(sort, page);
+  const [dbResult, profileCount] = await Promise.all([
+    fetchDbProfiles(sort, page),
+    fetchProfileCount(),
+  ]);
 
   if (dbResult && dbResult.profiles.length > 0) {
     profiles = filterByDimension(dbResult.profiles, dimension);
@@ -184,6 +204,12 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
                   (showing demo data)
                 </span>
               )}
+            </p>
+            {/* Stat line */}
+            <p className="mt-1 text-xs text-white/30">
+              {profileCount !== null && profileCount > 0
+                ? `${profileCount} engineer${profileCount === 1 ? "" : "s"} scored`
+                : "Join the community"}
             </p>
           </div>
 
