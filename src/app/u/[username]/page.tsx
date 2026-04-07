@@ -17,6 +17,7 @@ import FullReport from "@/components/FullReport";
 import LevelUp from "@/components/LevelUp";
 import DownloadInfographic from "@/components/DownloadInfographic";
 import ScoreHistory from "@/components/ScoreHistory";
+import ProfileNav from "@/components/ProfileNav";
 import { getMockProfile } from "@/lib/mock-profiles";
 import { dbRowToProfile } from "@/lib/db-to-profile";
 import type { MockDimensionScore } from "@/lib/mock-profiles";
@@ -266,8 +267,11 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
             </a>
           </div>
 
+          {/* Section anchor nav */}
+          <ProfileNav />
+
           {/* Hero chart + score card */}
-          <div className="flex flex-col items-center gap-6 mb-14">
+          <div id="overview" className="flex flex-col items-center gap-6 mb-14">
             <div className="rounded-2xl bg-[#12121a] border border-white/10 p-6 w-full max-w-lg">
               <RadarChart dimensions={profile.dimensions} size="hero" />
             </div>
@@ -335,7 +339,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           )}
 
           {/* Report section */}
-          <div className="mx-auto max-w-3xl space-y-8 mb-14">
+          <div id="report" className="mx-auto max-w-3xl space-y-8 mb-14">
             {/* Personality */}
             <div className="rounded-xl bg-[#12121a] border border-indigo-500/20 p-6">
               <h2 className="text-xs uppercase tracking-widest text-indigo-400 mb-3">
@@ -452,12 +456,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           </div>
 
           {/* Level Up — improvement roadmap */}
-          <div className="mx-auto max-w-3xl mb-14">
+          <div id="levelup" className="mx-auto max-w-3xl mb-14">
             <LevelUp profile={profile} />
           </div>
 
           {/* Dimension breakdown */}
-          <div className="mb-14">
+          <div id="breakdown" className="mb-14">
             <h2 className="text-lg font-semibold text-white mb-6">
               Score Breakdown
             </h2>
@@ -513,7 +517,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
           </div>
 
           {/* Manifest Overview */}
-          <div className="rounded-xl bg-[#12121a] border border-white/10 p-6 mb-10">
+          <div id="manifest" className="rounded-xl bg-[#12121a] border border-white/10 p-6 mb-10">
             <h2 className="text-lg font-semibold text-white mb-6">
               Manifest Overview
             </h2>
