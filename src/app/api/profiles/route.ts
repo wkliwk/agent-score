@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { eq, desc, gte, and, ilike } from "drizzle-orm";
 import { db } from "@/db";
-import { profiles } from "@/db/schema";
+import { profiles, scoreHistory } from "@/db/schema";
 import { scoreManifest } from "@/lib/scoring/engine";
 import { generateReport } from "@/lib/scoring/report";
 import { agentScoreManifestSchema } from "@/lib/validation/manifest.schema";
@@ -102,6 +102,14 @@ export async function POST(request: NextRequest) {
       .returning({ id: profiles.id });
     profileId = rows[0].id;
   }
+
+  // Record score history entry
+  await db.insert(scoreHistory).values({
+    profileId,
+    totalScore: scoreResult.composite,
+    dimensionScores: scoreResult as unknown as Record<string, unknown>,
+    scoredAt: now,
+  });
 
   const profileUrl = `/profile/${manifest.github}`;
 
