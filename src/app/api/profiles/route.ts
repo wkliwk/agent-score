@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { eq, desc, gte, and } from "drizzle-orm";
+import { eq, desc, gte, and, ilike } from "drizzle-orm";
 import { db } from "@/db";
 import { profiles } from "@/db/schema";
 import { scoreManifest } from "@/lib/scoring/engine";
@@ -7,7 +7,6 @@ import { generateReport } from "@/lib/scoring/report";
 import { agentScoreManifestSchema } from "@/lib/validation/manifest.schema";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { auth } from "@/auth";
-import type { ProfileSummary } from "@/lib/types/profile";
 import type { DimensionKey } from "@/lib/scoring/types";
 
 // ---------------------------------------------------------------------------
@@ -135,12 +134,16 @@ export async function GET(request: NextRequest) {
     : undefined;
   const topDimension = searchParams.get("topDimension") as DimensionKey | null;
   const sort = searchParams.get("sort") === "score" ? "score" : "newest";
+  const search = searchParams.get("search")?.trim() ?? "";
 
   const offset = (page - 1) * limit;
 
   const conditions = [eq(profiles.visibility, "public")];
   if (minScore !== undefined && !isNaN(minScore)) {
     conditions.push(gte(profiles.totalScore, minScore));
+  }
+  if (search.length >= 2) {
+    conditions.push(ilike(profiles.githubLogin, `${search}%`));
   }
 
   const whereClause = and(...conditions);
@@ -180,13 +183,14 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const summaries: ProfileSummary[] = filtered.map((row) => ({
+  const summaries = filtered.map((row) => ({
     id: row.id,
     githubLogin: row.githubLogin,
     displayName: row.displayName,
     avatarUrl: row.avatarUrl ?? null,
     totalScore: row.totalScore ?? null,
     tier: row.tier ?? null,
+    dimensionScores: row.dimensionScores ?? null,
     scoredAt: row.scoredAt?.toISOString() ?? null,
   }));
 

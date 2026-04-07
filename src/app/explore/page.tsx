@@ -4,6 +4,7 @@ import { desc, eq, gte, and, isNotNull, sql } from "drizzle-orm";
 import Navbar from "@/components/Navbar";
 import ProfileCard from "@/components/ProfileCard";
 import ExploreFilters from "@/components/ExploreFilters";
+import ExploreSearch from "@/components/ExploreSearch";
 import { MOCK_PROFILES } from "@/lib/mock-profiles";
 import { dbRowToProfile } from "@/lib/db-to-profile";
 import type { MockProfile } from "@/lib/mock-profiles";
@@ -213,64 +214,67 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
             </p>
           </div>
 
-          {/* Filters */}
-          <ExploreFilters sort={sort} dimension={dimension} />
+          {/* Search + content (search hides default content when active) */}
+          <ExploreSearch>
+            {/* Filters */}
+            <ExploreFilters sort={sort} dimension={dimension} />
 
-          {/* Grid */}
-          {profiles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/5 mb-4">
-                <Terminal size={24} className="text-white/40" />
+            {/* Grid */}
+            {profiles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/5 mb-4">
+                  <Terminal size={24} className="text-white/40" />
+                </div>
+                <h2 className="text-lg font-semibold text-white">
+                  Be the first to share your setup
+                </h2>
+                <p className="mt-2 text-sm text-white/50 max-w-xs">
+                  Run{" "}
+                  <code className="font-mono text-emerald-400">
+                    npx agentscore export
+                  </code>{" "}
+                  to generate your profile and join the community.
+                </p>
+                <Link
+                  href="https://github.com/wkliwk/agent-score"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-6 inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 transition-colors"
+                >
+                  Get started
+                </Link>
               </div>
-              <h2 className="text-lg font-semibold text-white">
-                Be the first to share your setup
-              </h2>
-              <p className="mt-2 text-sm text-white/50 max-w-xs">
-                Run{" "}
-                <code className="font-mono text-emerald-400">
-                  npx agentscore export
-                </code>{" "}
-                to generate your profile and join the community.
-              </p>
-              <Link
-                href="https://github.com/wkliwk/agent-score"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-6 inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 transition-colors"
-              >
-                Get started
-              </Link>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {profiles.map((profile) => (
-                <ProfileCard key={profile.username} profile={profile} />
-              ))}
-            </div>
-          )}
+            ) : (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {profiles.map((profile) => (
+                  <ProfileCard key={profile.username} profile={profile} />
+                ))}
+              </div>
+            )}
 
-          {/* Pagination */}
-          {(page > 1 || hasMore) && (
-            <div className="mt-10 flex items-center justify-center gap-3">
-              {page > 1 && (
-                <Link
-                  href={`/explore?sort=${sort}&dimension=${dimension}&page=${page - 1}`}
-                  className="rounded-lg border border-white/15 bg-[#12121a] px-4 py-2 text-sm text-white/70 hover:text-white hover:border-white/30 transition-colors"
-                >
-                  &larr; Prev
-                </Link>
-              )}
-              <span className="text-sm text-white/40">Page {page}</span>
-              {hasMore && (
-                <Link
-                  href={`/explore?sort=${sort}&dimension=${dimension}&page=${page + 1}`}
-                  className="rounded-lg border border-white/15 bg-[#12121a] px-4 py-2 text-sm text-white/70 hover:text-white hover:border-white/30 transition-colors"
-                >
-                  Next &rarr;
-                </Link>
-              )}
-            </div>
-          )}
+            {/* Pagination */}
+            {(page > 1 || hasMore) && (
+              <div className="mt-10 flex items-center justify-center gap-3">
+                {page > 1 && (
+                  <Link
+                    href={`/explore?sort=${sort}&dimension=${dimension}&page=${page - 1}`}
+                    className="rounded-lg border border-white/15 bg-[#12121a] px-4 py-2 text-sm text-white/70 hover:text-white hover:border-white/30 transition-colors"
+                  >
+                    &larr; Prev
+                  </Link>
+                )}
+                <span className="text-sm text-white/40">Page {page}</span>
+                {hasMore && (
+                  <Link
+                    href={`/explore?sort=${sort}&dimension=${dimension}&page=${page + 1}`}
+                    className="rounded-lg border border-white/15 bg-[#12121a] px-4 py-2 text-sm text-white/70 hover:text-white hover:border-white/30 transition-colors"
+                  >
+                    Next &rarr;
+                  </Link>
+                )}
+              </div>
+            )}
+          </ExploreSearch>
         </div>
       </main>
 
