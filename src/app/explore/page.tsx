@@ -8,14 +8,17 @@ import ExploreSearch from "@/components/ExploreSearch";
 import { MOCK_PROFILES } from "@/lib/mock-profiles";
 import { dbRowToProfile } from "@/lib/db-to-profile";
 import type { MockProfile } from "@/lib/mock-profiles";
-import type { DimensionKey } from "@/lib/scoring/types";
+import type { DimensionKey, TierLabel } from "@/lib/scoring/types";
 
 export const revalidate = 60;
+
+const VALID_TIERS: TierLabel[] = ["Beginner", "Intermediate", "Advanced", "Expert", "Master"];
 
 interface ExplorePageProps {
   searchParams: Promise<{
     sort?: string;
     dimension?: string;
+    tier?: string;
     page?: string;
   }>;
 }
@@ -33,9 +36,24 @@ function filterByDimension(
   });
 }
 
+function filterByTier(
+  profiles: MockProfile[],
+  tier: string | undefined
+): MockProfile[] {
+  if (!tier || tier === "all") return profiles;
+  return profiles.filter((p) => p.tier === tier);
+}
+
+function parseTier(raw: string | undefined): TierLabel | "all" {
+  if (!raw || raw === "all") return "all";
+  if ((VALID_TIERS as string[]).includes(raw)) return raw as TierLabel;
+  return "all";
+}
+
 async function fetchDbProfiles(
   sort: string,
-  page: number
+  page: number,
+  tier: TierLabel | "all"
 ): Promise<{ profiles: MockProfile[]; hasMore: boolean } | null> {
   try {
     const { getDb } = await import("@/db");
@@ -44,6 +62,9 @@ async function fetchDbProfiles(
 
     const limit = PAGE_SIZE;
     const offset = (page - 1) * limit;
+
+    const tierCondition =
+      tier !== "all" ? eq(profilesTable.tier, tier) : undefined;
 
     if (sort === "imports") {
       // Join profiles with bundles, order by importCount descending
@@ -73,7 +94,8 @@ async function fetchDbProfiles(
           and(
             eq(profilesTable.visibility, "public"),
             gte(profilesTable.totalScore, 0),
-            isNotNull(bundlesTable.importCount)
+            isNotNull(bundlesTable.importCount),
+            tierCondition
           )
         )
         .orderBy(desc(bundlesTable.importCount))
@@ -113,7 +135,13 @@ async function fetchDbProfiles(
     const rows = await db
       .select()
       .from(profilesTable)
-      .where(and(eq(profilesTable.visibility, "public"), gte(profilesTable.totalScore, 0)))
+      .where(
+        and(
+          eq(profilesTable.visibility, "public"),
+          gte(profilesTable.totalScore, 0),
+          tierCondition
+        )
+      )
       .orderBy(orderBy)
       .limit(limit + 1)
       .offset(offset);
@@ -156,6 +184,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
         ? "imports"
         : "newest";
   const dimension = params.dimension ?? "all";
+  const tier = parseTier(params.tier);
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
 
   let profiles: MockProfile[] = [];
@@ -163,7 +192,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   let hasMore = false;
 
   const [dbResult, profileCount] = await Promise.all([
-    fetchDbProfiles(sort, page),
+    fetchDbProfiles(sort, page, tier),
     fetchProfileCount(),
   ]);
 
@@ -181,11 +210,14 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
               (a, b) => (b.bundle?.importCount ?? 0) - (a.bundle?.importCount ?? 0)
             )
           : [...MOCK_PROFILES];
-    const filtered = filterByDimension(sorted, dimension);
+    const byDimension = filterByDimension(sorted, dimension);
+    const filtered = filterByTier(byDimension, tier);
     const start = (page - 1) * PAGE_SIZE;
     profiles = filtered.slice(start, start + PAGE_SIZE);
     hasMore = start + PAGE_SIZE < filtered.length;
   }
+
+  const paginationBase = `sort=${sort}&dimension=${dimension}&tier=${tier}`;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -217,7 +249,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
           {/* Search + content (search hides default content when active) */}
           <ExploreSearch>
             {/* Filters */}
-            <ExploreFilters sort={sort} dimension={dimension} />
+            <ExploreFilters sort={sort} dimension={dimension} tier={tier} />
 
             {/* Grid */}
             {profiles.length === 0 ? (
@@ -257,7 +289,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
               <div className="mt-10 flex items-center justify-center gap-3">
                 {page > 1 && (
                   <Link
-                    href={`/explore?sort=${sort}&dimension=${dimension}&page=${page - 1}`}
+                    href={`/explore?${paginationBase}&page=${page - 1}`}
                     className="rounded-lg border border-white/15 bg-[#12121a] px-4 py-2 text-sm text-white/70 hover:text-white hover:border-white/30 transition-colors"
                   >
                     &larr; Prev
@@ -266,7 +298,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
                 <span className="text-sm text-white/40">Page {page}</span>
                 {hasMore && (
                   <Link
-                    href={`/explore?sort=${sort}&dimension=${dimension}&page=${page + 1}`}
+                    href={`/explore?${paginationBase}&page=${page + 1}`}
                     className="rounded-lg border border-white/15 bg-[#12121a] px-4 py-2 text-sm text-white/70 hover:text-white hover:border-white/30 transition-colors"
                   >
                     Next &rarr;
