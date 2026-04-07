@@ -16,6 +16,7 @@ import ShareButton from "@/components/ShareButton";
 import FullReport from "@/components/FullReport";
 import LevelUp from "@/components/LevelUp";
 import DownloadInfographic from "@/components/DownloadInfographic";
+import ScoreHistory from "@/components/ScoreHistory";
 import { getMockProfile } from "@/lib/mock-profiles";
 import { dbRowToProfile } from "@/lib/db-to-profile";
 import type { MockDimensionScore } from "@/lib/mock-profiles";
@@ -128,6 +129,72 @@ function DimensionCard({ dim }: { dim: MockDimensionScore }) {
   );
 }
 
+async function fetchScoreHistory(
+  username: string
+): Promise<{ count: number; previousScore: number | null; scoredAt: string | null }> {
+  try {
+    const { getDb } = await import("@/db");
+    const { profiles, scoreHistory } = await import("@/db/schema");
+    const { eq, desc } = await import("drizzle-orm");
+    const db = getDb();
+
+    // Get profile ID
+    const profileRows = await db
+      .select({ id: profiles.id, scoredAt: profiles.scoredAt })
+      .from(profiles)
+      .where(eq(profiles.githubLogin, username))
+      .limit(1);
+    if (profileRows.length === 0)
+      return { count: 0, previousScore: null, scoredAt: null };
+
+    const profileId = profileRows[0].id;
+    const scoredAt = profileRows[0].scoredAt?.toISOString() ?? null;
+
+    // Get the two most recent score history entries
+    const historyRows = await db
+      .select({ totalScore: scoreHistory.totalScore })
+      .from(scoreHistory)
+      .where(eq(scoreHistory.profileId, profileId))
+      .orderBy(desc(scoreHistory.scoredAt))
+      .limit(2);
+
+    return {
+      count: historyRows.length,
+      previousScore: historyRows.length >= 2 ? historyRows[1].totalScore : null,
+      scoredAt,
+    };
+  } catch {
+    return { count: 0, previousScore: null, scoredAt: null };
+  }
+}
+
+async function getAuthenticatedGithubId(): Promise<string | null> {
+  try {
+    const { auth } = await import("@/auth");
+    const session = await auth();
+    return session?.user?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function getProfileGithubId(username: string): Promise<string | null> {
+  try {
+    const { getDb } = await import("@/db");
+    const { profiles } = await import("@/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const db = getDb();
+    const rows = await db
+      .select({ githubId: profiles.githubId })
+      .from(profiles)
+      .where(eq(profiles.githubLogin, username))
+      .limit(1);
+    return rows[0]?.githubId ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function hasBundle(username: string): Promise<boolean> {
   try {
     const { getDb } = await import("@/db");
@@ -146,7 +213,17 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
   // Try real DB first; fall back to mock
   const profile = (await fetchDbProfile(username)) ?? getMockProfile(username);
-  const bundleExists = await hasBundle(username);
+  const [bundleExists, history, authGithubId, profileGithubId] =
+    await Promise.all([
+      hasBundle(username),
+      fetchScoreHistory(username),
+      getAuthenticatedGithubId(),
+      getProfileGithubId(username),
+    ]);
+  const isOwner =
+    authGithubId !== null &&
+    profileGithubId !== null &&
+    authGithubId === profileGithubId;
 
   if (!profile) {
     notFound();
@@ -221,6 +298,14 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               >
                 {profile.tier} — {profile.tierDescription}
               </div>
+              <ScoreHistory
+                scoredAt={history.scoredAt}
+                previousScore={history.previousScore}
+                currentScore={profile.composite}
+                historyCount={history.count}
+                isOwner={isOwner}
+                username={profile.username}
+              />
               <div className="mt-4 flex items-center justify-center gap-3">
                 <ShareButton username={profile.username} />
                 <DownloadInfographic username={profile.username} />

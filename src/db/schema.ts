@@ -87,6 +87,25 @@ export const deviceFlows = pgTable(
   })
 );
 
+export const scoreHistory = pgTable(
+  "score_history",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    profileId: uuid("profile_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    totalScore: real("total_score").notNull(),
+    dimensionScores: jsonb("dimension_scores").notNull(),
+    scoredAt: timestamp("scored_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    profileIdIdx: index("score_history_profile_id_idx").on(table.profileId),
+    scoredAtIdx: index("score_history_scored_at_idx").on(table.scoredAt),
+  })
+);
+
 export const bundles = pgTable(
   "bundles",
   {
