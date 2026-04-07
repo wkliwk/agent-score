@@ -17,6 +17,7 @@ import FullReport from "@/components/FullReport";
 import LevelUp from "@/components/LevelUp";
 import DownloadInfographic from "@/components/DownloadInfographic";
 import ScoreHistory from "@/components/ScoreHistory";
+import ScoreHistoryChart from "@/components/ScoreHistoryChart";
 import ProfileNav from "@/components/ProfileNav";
 import { getMockProfile } from "@/lib/mock-profiles";
 import { dbRowToProfile } from "@/lib/db-to-profile";
@@ -130,13 +131,25 @@ function DimensionCard({ dim }: { dim: MockDimensionScore }) {
   );
 }
 
+export interface ScoreHistoryEntry {
+  totalScore: number;
+  scoredAt: string;
+}
+
+interface ScoreHistoryResult {
+  count: number;
+  previousScore: number | null;
+  scoredAt: string | null;
+  entries: ScoreHistoryEntry[];
+}
+
 async function fetchScoreHistory(
   username: string
-): Promise<{ count: number; previousScore: number | null; scoredAt: string | null }> {
+): Promise<ScoreHistoryResult> {
   try {
     const { getDb } = await import("@/db");
     const { profiles, scoreHistory } = await import("@/db/schema");
-    const { eq, desc } = await import("drizzle-orm");
+    const { eq, desc, asc } = await import("drizzle-orm");
     const db = getDb();
 
     // Get profile ID
@@ -146,26 +159,39 @@ async function fetchScoreHistory(
       .where(eq(profiles.githubLogin, username))
       .limit(1);
     if (profileRows.length === 0)
-      return { count: 0, previousScore: null, scoredAt: null };
+      return { count: 0, previousScore: null, scoredAt: null, entries: [] };
 
     const profileId = profileRows[0].id;
     const scoredAt = profileRows[0].scoredAt?.toISOString() ?? null;
 
-    // Get the two most recent score history entries
+    // Get all history entries (oldest first for chart)
     const historyRows = await db
-      .select({ totalScore: scoreHistory.totalScore })
+      .select({
+        totalScore: scoreHistory.totalScore,
+        scoredAt: scoreHistory.scoredAt,
+      })
       .from(scoreHistory)
       .where(eq(scoreHistory.profileId, profileId))
-      .orderBy(desc(scoreHistory.scoredAt))
-      .limit(2);
+      .orderBy(asc(scoreHistory.scoredAt))
+      .limit(50);
+
+    const entries: ScoreHistoryEntry[] = historyRows.map((r) => ({
+      totalScore: r.totalScore,
+      scoredAt: r.scoredAt.toISOString(),
+    }));
+
+    // Previous score = second most recent (entries are asc, so second-to-last)
+    const previousScore =
+      entries.length >= 2 ? entries[entries.length - 2].totalScore : null;
 
     return {
-      count: historyRows.length,
-      previousScore: historyRows.length >= 2 ? historyRows[1].totalScore : null,
+      count: entries.length,
+      previousScore,
       scoredAt,
+      entries,
     };
   } catch {
-    return { count: 0, previousScore: null, scoredAt: null };
+    return { count: 0, previousScore: null, scoredAt: null, entries: [] };
   }
 }
 
@@ -315,6 +341,9 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 <DownloadInfographic username={profile.username} />
               </div>
             </div>
+
+            {/* Score history chart */}
+            <ScoreHistoryChart entries={history.entries} />
           </div>
 
           {/* Bundle stats */}
