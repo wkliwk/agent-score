@@ -1,19 +1,27 @@
 "use client";
 
 import { useState } from "react";
-import { Share2, Check, Link as LinkIcon } from "lucide-react";
+import { Check, Link as LinkIcon } from "lucide-react";
 
 interface ShareButtonProps {
   username: string;
+  score: number;
+  tier: string;
 }
 
-export default function ShareButton({ username }: ShareButtonProps) {
+const XIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.259 5.631 5.905-5.631Zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
+export default function ShareButton({ username, score, tier }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
 
-  const profileUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/u/${username}`
-      : `/u/${username}`;
+  const profileUrl = `https://agentscore.dev/u/${username}`;
+
+  const tweetText = `I scored ${score}/10 on AgentScore — ${tier} tier. Check your Claude Code setup: ${profileUrl}`;
+  const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
 
   const handleCopyLink = async () => {
     try {
@@ -25,44 +33,30 @@ export default function ShareButton({ username }: ShareButtonProps) {
     }
   };
 
-  const handleShare = async () => {
-    if (typeof navigator.share === "function") {
-      try {
-        await navigator.share({
-          title: `${username} — AgentScore`,
-          text: `Check out my AgentScore profile`,
-          url: profileUrl,
-        });
-      } catch {
-        // share cancelled or failed
-      }
-    } else {
-      await handleCopyLink();
-    }
-  };
-
   return (
     <>
-      <button
-        onClick={handleShare}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 transition-colors"
+      <a
+        href={tweetUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-medium text-white/70 hover:text-white hover:border-white/40 transition-colors"
       >
-        <Share2 size={14} />
-        Share Profile
-      </button>
+        <XIcon />
+        Share on X
+      </a>
       <button
         onClick={handleCopyLink}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:border-white/40 transition-colors"
+        className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-1.5 text-xs font-medium text-white/70 hover:text-white hover:border-white/40 transition-colors"
       >
         {copied ? (
           <>
-            <Check size={14} className="text-emerald-400" />
+            <Check size={13} className="text-emerald-400" />
             <span className="text-emerald-400">Copied!</span>
           </>
         ) : (
           <>
-            <LinkIcon size={14} />
-            Copy Link
+            <LinkIcon size={13} />
+            Copy link
           </>
         )}
       </button>
