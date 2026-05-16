@@ -260,7 +260,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const isMaster = profile.tier === "Master";
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col overflow-x-hidden">
       <Navbar />
 
       <main className="flex-1 px-4 py-10 md:py-14">
@@ -336,7 +336,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 isOwner={isOwner}
                 username={profile.username}
               />
-              <div className="mt-4 flex items-center justify-center gap-3">
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                 <ShareButton username={profile.username} score={profile.composite} tier={profile.tier} />
                 <DownloadInfographic username={profile.username} />
               </div>
@@ -348,18 +348,18 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
           {/* Bundle stats */}
           {profile.bundle && (
-            <div className="flex items-center justify-center gap-6 mb-10">
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-10">
               <div className="flex items-center gap-2 text-sm text-white/50">
                 <GitFork size={14} className="text-indigo-400" />
                 <span className="font-mono text-white/70">{profile.bundle.importCount}</span>
                 <span>imports</span>
               </div>
-              <div className="h-3 w-px bg-white/10" />
+              <div className="hidden sm:block h-3 w-px bg-white/10" />
               <div className="flex items-center gap-2 text-sm text-white/50">
                 <span className="font-mono text-white/70">{profile.bundle.inspiredByCount}</span>
                 <span>users inspired</span>
               </div>
-              <div className="h-3 w-px bg-white/10" />
+              <div className="hidden sm:block h-3 w-px bg-white/10" />
               <div className="flex items-center gap-2 text-sm text-white/50">
                 <span className="font-mono text-white/70">{profile.bundle.fileCount}</span>
                 <span>files shared</span>
