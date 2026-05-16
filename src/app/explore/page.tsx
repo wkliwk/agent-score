@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import ProfileCard from "@/components/ProfileCard";
 import ExploreFilters from "@/components/ExploreFilters";
 import ExploreSearch from "@/components/ExploreSearch";
+import TopScorers from "@/components/TopScorers";
 import { MOCK_PROFILES } from "@/lib/mock-profiles";
 import { dbRowToProfile } from "@/lib/db-to-profile";
 import type { MockProfile } from "@/lib/mock-profiles";
@@ -245,6 +246,9 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
                 : "Join the community"}
             </p>
           </div>
+
+          {/* Top Scorers leaderboard — always visible, above search/filters */}
+          <TopScorers />
 
           {/* Search + content (search hides default content when active) */}
           <ExploreSearch>
