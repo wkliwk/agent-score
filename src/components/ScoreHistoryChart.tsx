@@ -33,7 +33,7 @@ export default function ScoreHistoryChart({ entries }: ScoreHistoryChartProps) {
   }));
 
   return (
-    <div className="w-full max-w-sm rounded-xl bg-[#12121a] border border-white/10 p-4">
+    <div className="w-full rounded-xl bg-[#12121a] border border-white/10 p-4">
       <p className="text-xs uppercase tracking-widest text-white/40 mb-3">
         Score History
       </p>
