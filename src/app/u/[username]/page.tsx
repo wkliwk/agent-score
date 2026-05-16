@@ -13,6 +13,7 @@ import {
 import Navbar from "@/components/Navbar";
 import RadarChart from "@/components/RadarChart";
 import ShareButton from "@/components/ShareButton";
+import CompareButton from "@/components/CompareButton";
 import FullReport from "@/components/FullReport";
 import LevelUp from "@/components/LevelUp";
 import DownloadInfographic from "@/components/DownloadInfographic";
@@ -339,6 +340,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
                 <ShareButton username={profile.username} score={profile.composite} tier={profile.tier} />
                 <DownloadInfographic username={profile.username} />
+                <CompareButton username={profile.username} />
               </div>
             </div>
 
