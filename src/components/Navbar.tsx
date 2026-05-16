@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
+import { signOutAction } from "@/app/actions";
 
 async function getGithubLogin(githubId: string): Promise<string | null> {
   try {
@@ -86,12 +87,7 @@ export default async function Navbar() {
                   </span>
                 )}
               </Link>
-              <form
-                action={async () => {
-                  "use server";
-                  await signOut({ redirectTo: "/" });
-                }}
-              >
+              <form action={signOutAction}>
                 <button
                   type="submit"
                   className="text-xs text-white/40 hover:text-white/70 transition-colors"
