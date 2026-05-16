@@ -337,7 +337,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
                 username={profile.username}
               />
               <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
-                <ShareButton username={profile.username} />
+                <ShareButton username={profile.username} score={profile.composite} tier={profile.tier} />
                 <DownloadInfographic username={profile.username} />
               </div>
             </div>
